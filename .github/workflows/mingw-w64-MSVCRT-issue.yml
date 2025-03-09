@@ -1,0 +1,58 @@
+name: Reproduction of MSVCRT issue
+
+on: [push, pull_request]
+
+jobs:
+  without-fix:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.1", "5.4", "luajit", "luajit-openresty" ]
+    
+    steps:
+      - uses: actions/checkout@master
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ ! contains(matrix.luaVersion, 'luajit') }}
+      - uses: hishamhm/gh-actions-lua@master
+        with:
+          luaVersion: ${{ matrix.luaVersion }}
+      - uses: luarocks/gh-actions-luarocks@master
+  
+      - name: test luarocks
+        shell: cmd
+        run: |
+          echo %PATH%
+          set | find "LUA"
+          luarocks
+          luarocks config
+          luarocks install luasocket
+          lua -e "assert(require('socket'))"
+
+  with-fix:
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.1", "5.4", "luajit", "luajit-openresty" ]
+    
+    steps:
+      - uses: actions/checkout@master
+      - uses: ilammy/msvc-dev-cmd@v1
+        if: ${{ ! contains(matrix.luaVersion, 'luajit') }}
+      - uses: hishamhm/gh-actions-lua@master
+        with:
+          luaVersion: ${{ matrix.luaVersion }}
+      - uses: luau-project/gh-actions-luarocks@fix-mingw-MSVCRT
+  
+      - name: test luarocks
+        shell: cmd
+        run: |
+          echo %PATH%
+          set | find "LUA"
+          luarocks
+          luarocks config
+          luarocks install luasocket
+          lua -e "assert(require('socket'))"
